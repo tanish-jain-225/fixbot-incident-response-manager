@@ -17,6 +17,11 @@ function buildAnalyzePayload(logText, codeSnippet) {
   }
 }
 
+function clearInputs(setLogText, setCodeSnippet) {
+  setLogText('')
+  setCodeSnippet('')
+}
+
 export default function AnalysisForm() {
   const [logText, setLogText] = useState('')
   const [codeSnippet, setCodeSnippet] = useState('')
@@ -41,7 +46,7 @@ export default function AnalysisForm() {
       const response = await api.analyzeIncident(payload)
 
       setResult(response.data)
-      handleClear()
+      clearInputs(setLogText, setCodeSnippet)
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to analyze incident. Please try again.'))
       console.error('Analysis error:', err)
@@ -52,8 +57,7 @@ export default function AnalysisForm() {
 
   const handleClear = () => {
     // Keep form reset in one place so success and manual clear behave identically.
-    setLogText('')
-    setCodeSnippet('')
+    clearInputs(setLogText, setCodeSnippet)
     setError('')
     setResult(null)
   }
