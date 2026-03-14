@@ -1,0 +1,137 @@
+/* App-wide styles */
+
+:root {
+  --brand-ink: #0f172a;
+  --brand-cyan: #0891b2;
+  --brand-orange: #ea580c;
+  --surface-white: rgba(255, 255, 255, 0.9);
+  --surface-border: rgba(148, 163, 184, 0.25);
+}
+
+.app-shell {
+  position: relative;
+  min-height: 100vh;
+}
+
+.app-shell::before,
+.app-shell::after {
+  content: '';
+  position: fixed;
+  z-index: -1;
+  filter: blur(70px);
+  border-radius: 9999px;
+  opacity: 0.45;
+}
+
+.app-shell::before {
+  width: 280px;
+  height: 280px;
+  background: #22d3ee;
+  top: -40px;
+  left: -80px;
+}
+
+.app-shell::after {
+  width: 320px;
+  height: 320px;
+  background: #fdba74;
+  bottom: -80px;
+  right: -90px;
+}
+
+.glass {
+  backdrop-filter: blur(12px);
+  background: var(--surface-white);
+  border: 1px solid var(--surface-border);
+}
+
+.panel {
+  border-radius: 16px;
+  border: 1px solid var(--surface-border);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 16px 45px rgba(15, 23, 42, 0.08);
+}
+
+.panel-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(248, 250, 252, 0.85);
+  transition: all 0.18s ease;
+}
+
+.panel-input:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+  background: #fff;
+}
+
+.brand-button {
+  background: linear-gradient(120deg, var(--brand-cyan), #0369a1);
+  color: #fff;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 700;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+}
+
+.brand-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(8, 145, 178, 0.24);
+}
+
+.brand-button:disabled {
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.page-enter {
+  animation: fadeIn 0.45s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pulse-subtle {
+  animation: pulseSubtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulseSubtle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
