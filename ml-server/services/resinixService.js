@@ -5,6 +5,40 @@ function isTimeoutError(error) {
   return error && (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT");
 }
 
+function getResponseText(model, responseData) {
+  const content = model.parseResponse(responseData);
+  if (!content) {
+    throw new Error(`Empty response from ${model.provider}`);
+  }
+
+  return content;
+}
+
+function parseProviderJson(model, content) {
+  const jsonCandidate = extractJsonCandidate(content);
+
+  try {
+    if (jsonCandidate && typeof jsonCandidate === "object") {
+      return jsonCandidate;
+    }
+
+    return JSON.parse(jsonCandidate);
+  } catch {
+    console.warn(`[${model.provider}] JSON parse failed, using fallback-normalized response.`);
+    return {};
+  }
+}
+
+function mapProviderAuthOrLimitError(error, providerName) {
+  if (error.response?.status === 401) {
+    throw new Error(`Invalid ${providerName} API key`);
+  }
+
+  if (error.response?.status === 429) {
+    throw new Error(`${providerName} API rate limit exceeded`);
+  }
+}
+
 function extractJsonCandidate(content) {
   if (typeof content !== "string") {
     return null;
@@ -96,22 +130,9 @@ async function callModel(model, prompt) {
     { headers: model.getHeaders(), timeout: model.timeout }
   );
 
-  // Each model knows how to extract text from its own response shape
-  const content = model.parseResponse(response.data);
-  if (!content) throw new Error(`Empty response from ${model.provider}`);
-
-  let parsed;
-  const jsonCandidate = extractJsonCandidate(content);
-  try {
-    if (jsonCandidate && typeof jsonCandidate === "object") {
-      parsed = jsonCandidate;
-    } else {
-      parsed = JSON.parse(jsonCandidate);
-    }
-  } catch {
-    console.warn(`[${model.provider}] JSON parse failed, using fallback-normalized response.`);
-    parsed = {};
-  }
+  // Each provider has its own response shape, but both return plain text content.
+  const content = getResponseText(model, response.data);
+  const parsed = parseProviderJson(model, content);
 
   return normalizeParsedResponse(parsed, content);
 }
@@ -122,18 +143,13 @@ async function callPrimaryProvider(prompt) {
     console.log(`[ai] Response from primary (${aiModel.primary.provider})`);
     return result;
   } catch (primaryError) {
-    // Surface hard failures immediately (wrong key, rate-limit)
-    if (primaryError.response?.status === 401) {
-      throw new Error("Invalid Resinix API key");
-    }
-    if (primaryError.response?.status === 429) {
-      throw new Error("Resinix API rate limit exceeded");
-    }
+    // Surface hard provider failures immediately.
+    mapProviderAuthOrLimitError(primaryError, "Resinix");
     if (isTimeoutError(primaryError)) {
       throw new Error("Resinix API request timeout");
     }
 
-    // Only attempt fallback for network/server errors
+    // Fallback is only allowed for connectivity/server-side failures.
     if (!aiModel.shouldFallback(primaryError)) {
       throw primaryError;
     }
@@ -153,12 +169,7 @@ async function callFallbackProvider(prompt) {
     console.log(`[ai] Response from fallback (${aiModel.fallback.provider})`);
     return result;
   } catch (fallbackError) {
-    if (fallbackError.response?.status === 401) {
-      throw new Error("Invalid Gemini API key");
-    }
-    if (fallbackError.response?.status === 429) {
-      throw new Error("Gemini API rate limit exceeded");
-    }
+    mapProviderAuthOrLimitError(fallbackError, "Gemini");
     if (isTimeoutError(fallbackError)) {
       throw new Error("Gemini API request timeout");
     }

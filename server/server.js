@@ -12,68 +12,76 @@ const app = express();
 const PORT = Number(process.env.PORT || 5000);
 let mongoConnectionPromise = null;
 
-// Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || "*",
-  credentials: true,
-}));
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ limit: "10mb", extended: true }));
+const REQUIRED_ENV_VARS = [
+  "JWT_SECRET",
+  "MONGO_URI",
+  "MONGO_DB_NAME",
+  "USERS_COLLECTION_NAME",
+  "INCIDENTS_COLLECTION_NAME",
+];
 
-// Request logging
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  next();
-});
+function registerMiddlewares() {
+  app.use(cors({
+    origin: process.env.CORS_ORIGIN || "*",
+    credentials: true,
+  }));
+  app.use(express.json({ limit: "10mb" }));
+  app.use(express.urlencoded({ limit: "10mb", extended: true }));
+}
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/incidents", incidentRoutes);
-
-// Health check endpoint
-app.get("/", (req, res) => {
-  res.json({
-    status: "ok",
-    service: "fixbot-server",
-    port: PORT,
-    timestamp: new Date().toISOString(),
+function registerRequestLogger() {
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
   });
-});
+}
 
-// Health check endpoint (explicit)
-app.get("/health", (req, res) => {
-  const mongoStatus = mongoose.connection.readyState === 1 ? "connected" : "disconnected";
-  res.json({
-    status: "healthy",
-    service: "fixbot-server",
-    database: mongoStatus,
-  });
-});
+function registerRoutes() {
+  app.use("/api/auth", authRoutes);
+  app.use("/api/incidents", incidentRoutes);
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    error: "Endpoint not found",
-    path: req.path,
+  app.get("/", (req, res) => {
+    res.json({
+      status: "ok",
+      service: "fixbot-server",
+      port: PORT,
+      timestamp: new Date().toISOString(),
+    });
   });
-});
 
-// Error handler
-app.use((err, req, res, next) => {
-  console.error("Server error:", err);
-  res.status(err.status || 500).json({
-    error: err.message || "Internal server error",
+  app.get("/health", (req, res) => {
+    const mongoStatus = mongoose.connection.readyState === 1 ? "connected" : "disconnected";
+    res.json({
+      status: "healthy",
+      service: "fixbot-server",
+      database: mongoStatus,
+    });
   });
-});
+}
+
+function registerErrorHandlers() {
+  app.use((req, res) => {
+    res.status(404).json({
+      error: "Endpoint not found",
+      path: req.path,
+    });
+  });
+
+  app.use((err, req, res, next) => {
+    console.error("Server error:", err);
+    res.status(err.status || 500).json({
+      error: err.message || "Internal server error",
+    });
+  });
+}
+
+registerMiddlewares();
+registerRequestLogger();
+registerRoutes();
+registerErrorHandlers();
 
 function validateRequiredEnv() {
-  requireEnvList([
-    "JWT_SECRET",
-    "MONGO_URI",
-    "MONGO_DB_NAME",
-    "USERS_COLLECTION_NAME",
-    "INCIDENTS_COLLECTION_NAME",
-  ]);
+  requireEnvList(REQUIRED_ENV_VARS);
 }
 
 async function connectToDatabase() {
@@ -99,6 +107,7 @@ async function connectToDatabase() {
 
 module.exports = async (req, res) => {
   try {
+    // Serverless requests can hit a cold instance, so init on demand.
     validateRequiredEnv();
     await connectToDatabase();
     return app(req, res);

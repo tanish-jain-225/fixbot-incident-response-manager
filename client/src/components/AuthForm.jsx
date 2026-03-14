@@ -7,6 +7,10 @@ const initialForm = {
   password: '',
 }
 
+function getNextMode(currentMode) {
+  return currentMode === 'login' ? 'signup' : 'login'
+}
+
 export default function AuthForm({ onAuthSuccess }) {
   const [mode, setMode] = useState('login')
   const [form, setForm] = useState(initialForm)
@@ -22,7 +26,9 @@ export default function AuthForm({ onAuthSuccess }) {
     e.preventDefault()
     setError('')
 
-    if (!form.email.trim() || !form.password.trim()) {
+    const trimmedEmail = form.email.trim()
+
+    if (!trimmedEmail || !form.password.trim()) {
       setError('Email and password are required')
       return
     }
@@ -37,7 +43,7 @@ export default function AuthForm({ onAuthSuccess }) {
     try {
       const endpoint = mode === 'login' ? api.login : api.signup
       const response = await endpoint({
-        email: form.email.trim(),
+        email: trimmedEmail,
         password: form.password,
       })
 
@@ -114,7 +120,7 @@ export default function AuthForm({ onAuthSuccess }) {
         type="button"
         className="mt-4 text-sm text-blue-600 hover:text-blue-800"
         onClick={() => {
-          setMode((prev) => (prev === 'login' ? 'signup' : 'login'))
+          setMode((prev) => getNextMode(prev))
           setError('')
         }}
       >

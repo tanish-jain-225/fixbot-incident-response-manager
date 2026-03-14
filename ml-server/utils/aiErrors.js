@@ -1,6 +1,7 @@
 function mapAnalyzeError(error) {
   const message = String(error && error.message ? error.message : "").toLowerCase();
 
+  // Map provider/service errors to stable HTTP responses for the API caller.
   if (message.includes("resinix_api_key")) {
     return { statusCode: 500, message: "Resinix API key not configured" };
   }

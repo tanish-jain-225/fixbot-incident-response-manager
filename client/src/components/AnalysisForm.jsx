@@ -6,6 +6,17 @@ import LoadingSpinner from './LoadingSpinner'
 import ResultPanel from './ResultPanel'
 import { getErrorMessage } from '../utils/errors'
 
+function trimInput(value) {
+  return String(value || '').trim()
+}
+
+function buildAnalyzePayload(logText, codeSnippet) {
+  return {
+    logText: trimInput(logText),
+    codeSnippet: trimInput(codeSnippet),
+  }
+}
+
 export default function AnalysisForm() {
   const [logText, setLogText] = useState('')
   const [codeSnippet, setCodeSnippet] = useState('')
@@ -18,7 +29,8 @@ export default function AnalysisForm() {
     setError('')
     setResult(null)
 
-    if (!logText.trim() || !codeSnippet.trim()) {
+    const payload = buildAnalyzePayload(logText, codeSnippet)
+    if (!payload.logText || !payload.codeSnippet) {
       setError('Please provide both error logs and code snippet')
       return
     }
@@ -26,14 +38,10 @@ export default function AnalysisForm() {
     setLoading(true)
 
     try {
-      const response = await api.analyzeIncident({
-        logText: logText.trim(),
-        codeSnippet: codeSnippet.trim(),
-      })
+      const response = await api.analyzeIncident(payload)
 
       setResult(response.data)
-      setLogText('')
-      setCodeSnippet('')
+      handleClear()
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to analyze incident. Please try again.'))
       console.error('Analysis error:', err)
@@ -43,6 +51,7 @@ export default function AnalysisForm() {
   }
 
   const handleClear = () => {
+    // Keep form reset in one place so success and manual clear behave identically.
     setLogText('')
     setCodeSnippet('')
     setError('')

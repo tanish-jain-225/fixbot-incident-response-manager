@@ -16,6 +16,7 @@ function normalizeConfidenceScore(value) {
 }
 
 function normalizeAnalysisResponse(analysis) {
+  // Keep a stable lowercase contract for downstream server normalization.
   return {
     severity: normalizeSeverity(analysis.severity),
     rootCause: analysis.rootCause || "Unable to determine root cause",
@@ -26,6 +27,7 @@ function normalizeAnalysisResponse(analysis) {
 }
 
 function validateAnalyzePayload({ logText, codeSnippet }) {
+  // Input limits protect provider cost and avoid oversized payload failures.
   if (!logText || typeof logText !== "string" || logText.trim() === "") {
     return "logText is required and must be non-empty";
   }

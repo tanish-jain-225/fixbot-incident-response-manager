@@ -7,9 +7,17 @@ import api from './services/api'
 import { clearAuthSession, getStoredAuth, saveAuthSession, saveUserProfile } from './utils/session'
 import './App.css'
 
+const PAGE_HOME = 'home'
+const PAGE_HISTORY = 'history'
+
+function buildEmptyAuthState() {
+  return { token: null, user: null }
+}
+
 function App() {
-  const [currentPage, setCurrentPage] = useState('home')
+  const [currentPage, setCurrentPage] = useState(PAGE_HOME)
   const [auth, setAuth] = useState(getStoredAuth)
+  const isAuthenticated = Boolean(auth.token && auth.user)
 
   useEffect(() => {
     const validateSession = async () => {
@@ -21,7 +29,7 @@ function App() {
         saveUserProfile(response.data.user)
       } catch (error) {
         clearAuthSession()
-        setAuth({ token: null, user: null })
+        setAuth(buildEmptyAuthState())
       }
     }
 
@@ -35,11 +43,11 @@ function App() {
 
   const handleLogout = () => {
     clearAuthSession()
-    setAuth({ token: null, user: null })
-    setCurrentPage('home')
+    setAuth(buildEmptyAuthState())
+    setCurrentPage(PAGE_HOME)
   }
 
-  if (!auth.token || !auth.user) {
+  if (!isAuthenticated) {
     return (
       <div className="app-shell min-h-screen flex flex-col">
         <Header
@@ -66,8 +74,8 @@ function App() {
         onLogout={handleLogout}
       />
       <main className="container mx-auto px-4 py-8 md:py-10 page-enter">
-        {currentPage === 'home' && <Home />}
-        {currentPage === 'history' && <IncidentHistory />}
+        {currentPage === PAGE_HOME && <Home />}
+        {currentPage === PAGE_HISTORY && <IncidentHistory />}
       </main>
     </div>
   )

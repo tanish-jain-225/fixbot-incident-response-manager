@@ -1,3 +1,14 @@
+const PAGE_HOME = 'home'
+const PAGE_HISTORY = 'history'
+
+function getNavButtonClass(isActive, isAuthenticated) {
+  return `px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
+    isActive
+      ? 'bg-cyan-600 text-white'
+      : 'text-slate-700 hover:bg-white'
+  } ${!isAuthenticated ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : ''}`
+}
+
 export default function Header({ currentPage, setCurrentPage, user, onLogout }) {
   const isAuthenticated = Boolean(user)
 
@@ -6,7 +17,13 @@ export default function Header({ currentPage, setCurrentPage, user, onLogout }) 
       <div className="container mx-auto px-4">
         <div className="glass rounded-2xl px-4 py-4 md:px-6 md:py-5 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-cyan-600 text-white grid place-items-center text-lg font-bold">F</div>
+            <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 grid place-items-center overflow-hidden">
+              <img
+                src="/support.ico"
+                alt="FixBot logo"
+                className="h-8 w-8 object-contain"
+              />
+            </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">FixBot Console</h1>
               <p className="text-sm text-slate-600">
@@ -21,28 +38,20 @@ export default function Header({ currentPage, setCurrentPage, user, onLogout }) 
               {isAuthenticated ? user?.email : 'Not signed in'}
             </p>
             <nav className="flex gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <button
-              onClick={() => isAuthenticated && setCurrentPage('home')}
-              disabled={!isAuthenticated}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                currentPage === 'home'
-                  ? 'bg-cyan-600 text-white'
-                  : 'text-slate-700 hover:bg-white'
-              } ${!isAuthenticated ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : ''}`}
-            >
-              Analyze
-            </button>
-            <button
-              onClick={() => isAuthenticated && setCurrentPage('history')}
-              disabled={!isAuthenticated}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                currentPage === 'history'
-                  ? 'bg-cyan-600 text-white'
-                  : 'text-slate-700 hover:bg-white'
-              } ${!isAuthenticated ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : ''}`}
-            >
-              History
-            </button>
+              <button
+                onClick={() => isAuthenticated && setCurrentPage(PAGE_HOME)}
+                disabled={!isAuthenticated}
+                className={getNavButtonClass(currentPage === PAGE_HOME, isAuthenticated)}
+              >
+                Analyze
+              </button>
+              <button
+                onClick={() => isAuthenticated && setCurrentPage(PAGE_HISTORY)}
+                disabled={!isAuthenticated}
+                className={getNavButtonClass(currentPage === PAGE_HISTORY, isAuthenticated)}
+              >
+                History
+              </button>
             </nav>
             {isAuthenticated ? (
               <button

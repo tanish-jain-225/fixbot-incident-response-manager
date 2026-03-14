@@ -6,6 +6,19 @@ import { getErrorMessage } from '../utils/errors'
 import { normalizeSeverity, SEVERITY_LEVELS } from '../utils/severity'
 
 const ALL_FILTER = 'All'
+const FILTER_OPTIONS = [ALL_FILTER, ...SEVERITY_LEVELS]
+
+function formatIncidentDate(createdAt) {
+  return new Date(createdAt).toLocaleString()
+}
+
+function filterIncidentsBySeverity(incidents, selectedFilter) {
+  if (selectedFilter === ALL_FILTER) {
+    return incidents
+  }
+
+  return incidents.filter((incident) => normalizeSeverity(incident.severity) === selectedFilter)
+}
 
 export default function IncidentHistory() {
   const [incidents, setIncidents] = useState([])
@@ -33,9 +46,7 @@ export default function IncidentHistory() {
     }
   }
 
-  const filteredIncidents = incidents.filter(
-    (incident) => filter === ALL_FILTER || normalizeSeverity(incident.severity) === filter
-  )
+  const filteredIncidents = filterIncidentsBySeverity(incidents, filter)
 
   const handleClearAll = async () => {
     const confirmed = window.confirm('Clear all incident history for your account?')
@@ -89,7 +100,7 @@ export default function IncidentHistory() {
 
       {/* Filter */}
       <div className="flex flex-wrap gap-2">
-        {[ALL_FILTER, ...SEVERITY_LEVELS].map((severity) => (
+        {FILTER_OPTIONS.map((severity) => (
           <button
             key={severity}
             onClick={() => setFilter(severity)}
@@ -116,7 +127,7 @@ export default function IncidentHistory() {
                 <div className="flex items-center gap-3 flex-wrap">
                   <SeverityBadge severity={incident.severity} />
                   <span className="text-xs md:text-sm text-slate-500">
-                    {new Date(incident.createdAt).toLocaleString()}
+                    {formatIncidentDate(incident.createdAt)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">

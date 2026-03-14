@@ -8,6 +8,21 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function toAuthUser(user) {
+  return {
+    id: user._id,
+    email: user.email,
+  };
+}
+
+function validateAuthPayload(email, password) {
+  if (!email || !password) {
+    return "email and password are required";
+  }
+
+  return null;
+}
+
 function createToken(user) {
   return jwt.sign(
     {
@@ -22,9 +37,10 @@ function createToken(user) {
 async function signup(req, res) {
   try {
     const { email, password } = req.body;
+    const payloadError = validateAuthPayload(email, password);
 
-    if (!email || !password) {
-      return sendError(res, 400, "email and password are required");
+    if (payloadError) {
+      return sendError(res, 400, payloadError);
     }
 
     if (!isValidEmail(email)) {
@@ -52,10 +68,7 @@ async function signup(req, res) {
 
     return res.status(201).json({
       token,
-      user: {
-        id: user._id,
-        email: user.email,
-      },
+      user: toAuthUser(user),
     });
   } catch (error) {
     console.error("Signup error:", error.message);
@@ -66,9 +79,10 @@ async function signup(req, res) {
 async function login(req, res) {
   try {
     const { email, password } = req.body;
+    const payloadError = validateAuthPayload(email, password);
 
-    if (!email || !password) {
-      return sendError(res, 400, "email and password are required");
+    if (payloadError) {
+      return sendError(res, 400, payloadError);
     }
 
     const normalizedEmail = normalizeEmail(email);
@@ -88,10 +102,7 @@ async function login(req, res) {
 
     return res.json({
       token,
-      user: {
-        id: user._id,
-        email: user.email,
-      },
+      user: toAuthUser(user),
     });
   } catch (error) {
     console.error("Login error:", error.message);

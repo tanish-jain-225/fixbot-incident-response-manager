@@ -2,13 +2,20 @@ import { useState } from 'react'
 import SeverityBadge from './SeverityBadge'
 import { normalizeSeverity } from '../utils/severity'
 
+function getCopyableResultText(result) {
+  return `Root Cause: ${result.rootCause}\n\nFix:\n${result.suggestedFix}\n\nExplanation: ${result.explanation}`
+}
+
+function getConfidenceWidth(score) {
+  return `${score}%`
+}
+
 export default function ResultPanel({ result }) {
   const [copied, setCopied] = useState(false)
   const severity = normalizeSeverity(result.severity)
 
   const handleCopy = async () => {
-    const text = `Root Cause: ${result.rootCause}\n\nFix:\n${result.suggestedFix}\n\nExplanation: ${result.explanation}`
-    await navigator.clipboard.writeText(text)
+    await navigator.clipboard.writeText(getCopyableResultText(result))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -54,7 +61,7 @@ export default function ResultPanel({ result }) {
           <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
             <div
               className="bg-green-500 h-full transition-all duration-500"
-              style={{ width: `${result.confidenceScore}%` }}
+              style={{ width: getConfidenceWidth(result.confidenceScore) }}
             ></div>
           </div>
           <span className="text-2xl font-bold text-gray-800">{result.confidenceScore}%</span>

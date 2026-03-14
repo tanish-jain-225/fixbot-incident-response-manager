@@ -6,6 +6,10 @@ const { sendError, sendServerError } = require("../utils/http");
 const { validateAnalyzePayload, normalizeAnalysisResponse } = require("../utils/analysis");
 const { mapAnalyzeError } = require("../utils/aiErrors");
 
+function buildAnalysisPrompt(logText, codeSnippet) {
+  return buildDebugPrompt(logText, codeSnippet || "");
+}
+
 router.post("/", async (req, res) => {
   try {
     const { logText, codeSnippet } = req.body;
@@ -15,9 +19,11 @@ router.post("/", async (req, res) => {
       return sendError(res, 400, validationError);
     }
 
-    const prompt = buildDebugPrompt(logText, codeSnippet || "");
+    // Build provider prompt from request context.
+    const prompt = buildAnalysisPrompt(logText, codeSnippet);
     const analysis = await queryResinix(prompt);
 
+    // Normalize all provider responses to one stable client contract.
     return res.json(normalizeAnalysisResponse(analysis));
   } catch (error) {
     console.error("Analysis error:", error.message);

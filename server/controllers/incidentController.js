@@ -7,6 +7,29 @@ const { normalizeEmail, isValidObjectId, parsePagination } = require("../utils/r
 
 const MAX_INCIDENT_INPUT_LENGTH = 50000;
 
+function validateAnalyzePayload(logText, codeSnippet) {
+  if (!logText || typeof logText !== "string" || logText.trim() === "") {
+    return "logText is required and must be non-empty";
+  }
+
+  if (logText.length > MAX_INCIDENT_INPUT_LENGTH) {
+    return "logText exceeds maximum length of 50000 characters";
+  }
+
+  if (codeSnippet && codeSnippet.length > MAX_INCIDENT_INPUT_LENGTH) {
+    return "codeSnippet exceeds maximum length of 50000 characters";
+  }
+
+  return null;
+}
+
+function toIncidentResponse(incident, fallbackEmail) {
+  return {
+    ...incident.toObject(),
+    userEmail: incident.userEmail || fallbackEmail,
+  };
+}
+
 function normalizeSeverity(severity) {
   const value = String(severity || "").toLowerCase();
   if (value === "critical") return "Critical";
@@ -20,19 +43,12 @@ async function analyzeIncident(req, res) {
     const userEmail = req.user.email;
     const { logText, codeSnippet } = req.body;
 
-    // Validation
-    if (!logText || typeof logText !== "string" || logText.trim() === "") {
-      return sendError(res, 400, "logText is required and must be non-empty");
+    const payloadError = validateAnalyzePayload(logText, codeSnippet);
+    if (payloadError) {
+      return sendError(res, 400, payloadError);
     }
 
-    if (logText.length > MAX_INCIDENT_INPUT_LENGTH) {
-      return sendError(res, 400, "logText exceeds maximum length of 50000 characters");
-    }
-
-    if (codeSnippet && codeSnippet.length > MAX_INCIDENT_INPUT_LENGTH) {
-      return sendError(res, 400, "codeSnippet exceeds maximum length of 50000 characters");
-    }
-
+    // Ask ML service for analysis before persisting.
     const analysis = await analyzeWithML(logText, codeSnippet || "");
 
     const incident = await Incident.create({
@@ -64,8 +80,7 @@ async function analyzeIncident(req, res) {
     }
 
     return res.status(201).json({
-      ...incident.toObject(),
-      userEmail: incident.userEmail || userEmail,
+      ...toIncidentResponse(incident, userEmail),
       emailNotificationSent: emailSent,
     });
   } catch (error) {
@@ -89,7 +104,7 @@ async function getIncidents(req, res) {
       maxLimit: 100,
     });
 
-    let query = { userEmail };
+    const query = { userEmail };
     if (severity) {
       query.severity = normalizeSeverity(severity);
     }
@@ -99,10 +114,7 @@ async function getIncidents(req, res) {
       .limit(limit)
       .skip(skip);
 
-    const incidentsWithEmail = incidents.map((incident) => ({
-      ...incident.toObject(),
-      userEmail: incident.userEmail || req.user.email,
-    }));
+    const incidentsWithEmail = incidents.map((incident) => toIncidentResponse(incident, req.user.email));
 
     const total = await Incident.countDocuments(query);
 
@@ -133,10 +145,7 @@ async function getIncidentById(req, res) {
       return sendError(res, 404, "Incident not found");
     }
 
-    return res.json({
-      ...incident.toObject(),
-      userEmail: incident.userEmail || req.user.email,
-    });
+    return res.json(toIncidentResponse(incident, req.user.email));
   } catch (error) {
     console.error("Get incident by ID error:", error.message);
     return sendServerError(res, "Failed to fetch incident");
@@ -160,10 +169,7 @@ async function deleteIncident(req, res) {
 
     return res.json({
       message: "Incident deleted successfully",
-      incident: {
-        ...incident.toObject(),
-        userEmail: incident.userEmail || req.user.email,
-      },
+      incident: toIncidentResponse(incident, req.user.email),
     });
   } catch (error) {
     console.error("Delete incident error:", error.message);
