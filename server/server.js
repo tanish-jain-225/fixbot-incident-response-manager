@@ -5,6 +5,8 @@ require("dotenv").config();
 
 const incidentRoutes = require("./routes/incidentRoutes");
 const authRoutes = require("./routes/authRoutes");
+const { requireEnvList } = require("./utils/env");
+const { sendServerError } = require("./utils/http");
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -65,15 +67,13 @@ app.use((err, req, res, next) => {
 });
 
 function validateRequiredEnv() {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("Missing required environment variable: JWT_SECRET");
-  }
-  if (!process.env.MONGO_URI) {
-    throw new Error("Missing required environment variable: MONGO_URI");
-  }
-  if (!process.env.MONGO_DB_NAME) {
-    throw new Error("Missing required environment variable: MONGO_DB_NAME");
-  }
+  requireEnvList([
+    "JWT_SECRET",
+    "MONGO_URI",
+    "MONGO_DB_NAME",
+    "USERS_COLLECTION_NAME",
+    "INCIDENTS_COLLECTION_NAME",
+  ]);
 }
 
 async function connectToDatabase() {
@@ -104,7 +104,7 @@ module.exports = async (req, res) => {
     return app(req, res);
   } catch (error) {
     console.error("❌ Server initialization error:", error.message);
-    return res.status(500).json({ error: "Server initialization error" });
+    return sendServerError(res, "Server initialization error");
   }
 };
 

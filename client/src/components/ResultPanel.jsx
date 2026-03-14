@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import SeverityBadge from './SeverityBadge'
+import { normalizeSeverity } from '../utils/severity'
 
 export default function ResultPanel({ result }) {
   const [copied, setCopied] = useState(false)
+  const severity = normalizeSeverity(result.severity)
 
   const handleCopy = async () => {
     const text = `Root Cause: ${result.rootCause}\n\nFix:\n${result.suggestedFix}\n\nExplanation: ${result.explanation}`
@@ -18,7 +20,7 @@ export default function ResultPanel({ result }) {
       {/* Severity */}
       <div className="space-y-2">
         <h3 className="text-lg font-semibold text-gray-700">Severity Level</h3>
-        <SeverityBadge severity={result.severity} />
+        <SeverityBadge severity={severity} />
       </div>
 
       {/* Root Cause */}

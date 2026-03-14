@@ -4,6 +4,7 @@ require("dotenv").config();
 
 const analyzeRoute = require("./routes/analyze");
 const aiModel   = require("./config/aiModel");
+const { sendServerError } = require("./utils/http");
 
 const app = express();
 const PORT = Number(process.env.PORT || 8000);
@@ -41,10 +42,7 @@ app.get("/health", (req, res) => {
   res.json({
     status: "healthy",
     service: "fixbot-ml-server",
-    ai: {
-      primary:  { provider: aiModel.primary.provider,  model: aiModel.primary.name,  apiUrl: aiModel.primary.apiUrl },
-      fallback: { provider: aiModel.fallback.provider, model: aiModel.fallback.name, apiUrl: aiModel.fallback.apiUrl },
-    },
+    ai: aiModel.getHealthSummary(),
   });
 });
 
@@ -59,9 +57,7 @@ app.use((req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
   console.error("Server error:", err);
-  res.status(err.status || 500).json({
-    error: err.message || "Internal server error",
-  });
+  return sendServerError(res, err.message || "Internal server error");
 });
 
 module.exports = app;

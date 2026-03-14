@@ -1,11 +1,12 @@
 const jwt = require("jsonwebtoken");
+const { sendError } = require("../utils/http");
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!token) {
-    return res.status(401).json({ error: "Authorization token is required" });
+    return sendError(res, 401, "Authorization token is required");
   }
 
   try {
@@ -16,7 +17,7 @@ function authMiddleware(req, res, next) {
     };
     return next();
   } catch (error) {
-    return res.status(401).json({ error: "Invalid or expired token" });
+    return sendError(res, 401, "Invalid or expired token");
   }
 }
 

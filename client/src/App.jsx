@@ -4,19 +4,12 @@ import Home from './pages/Home'
 import IncidentHistory from './components/IncidentHistory'
 import AuthForm from './components/AuthForm'
 import api from './services/api'
+import { clearAuthSession, getStoredAuth, saveAuthSession, saveUserProfile } from './utils/session'
 import './App.css'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
-  const [auth, setAuth] = useState(() => {
-    const token = localStorage.getItem(api.TOKEN_KEY)
-    const rawUser = localStorage.getItem('fixbot_user')
-
-    return {
-      token,
-      user: rawUser ? JSON.parse(rawUser) : null,
-    }
-  })
+  const [auth, setAuth] = useState(getStoredAuth)
 
   useEffect(() => {
     const validateSession = async () => {
@@ -25,10 +18,9 @@ function App() {
       try {
         const response = await api.getProfile()
         setAuth((prev) => ({ ...prev, user: response.data.user }))
-        localStorage.setItem('fixbot_user', JSON.stringify(response.data.user))
+        saveUserProfile(response.data.user)
       } catch (error) {
-        localStorage.removeItem(api.TOKEN_KEY)
-        localStorage.removeItem('fixbot_user')
+        clearAuthSession()
         setAuth({ token: null, user: null })
       }
     }
@@ -37,14 +29,12 @@ function App() {
   }, [auth.token])
 
   const handleAuthSuccess = ({ token, user }) => {
-    localStorage.setItem(api.TOKEN_KEY, token)
-    localStorage.setItem('fixbot_user', JSON.stringify(user))
+    saveAuthSession({ token, user })
     setAuth({ token, user })
   }
 
   const handleLogout = () => {
-    localStorage.removeItem(api.TOKEN_KEY)
-    localStorage.removeItem('fixbot_user')
+    clearAuthSession()
     setAuth({ token: null, user: null })
     setCurrentPage('home')
   }

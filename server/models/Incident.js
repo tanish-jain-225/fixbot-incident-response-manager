@@ -1,9 +1,7 @@
 const mongoose = require("mongoose");
-const INCIDENTS_COLLECTION_NAME = process.env.INCIDENTS_COLLECTION_NAME;
+const { requireEnv } = require("../utils/env");
 
-if (!INCIDENTS_COLLECTION_NAME) {
-  throw new Error("Missing required environment variable: INCIDENTS_COLLECTION_NAME");
-}
+const INCIDENTS_COLLECTION_NAME = requireEnv("INCIDENTS_COLLECTION_NAME");
 
 const incidentSchema = new mongoose.Schema(
   {

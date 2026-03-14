@@ -1,6 +1,8 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { sendError, sendServerError } = require("../utils/http");
+const { normalizeEmail } = require("../utils/request");
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -22,22 +24,22 @@ async function signup(req, res) {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: "email and password are required" });
+      return sendError(res, 400, "email and password are required");
     }
 
     if (!isValidEmail(email)) {
-      return res.status(400).json({ error: "Please provide a valid email address" });
+      return sendError(res, 400, "Please provide a valid email address");
     }
 
     if (String(password).length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
+      return sendError(res, 400, "Password must be at least 6 characters");
     }
 
-    const normalizedEmail = String(email).toLowerCase().trim();
+    const normalizedEmail = normalizeEmail(email);
     const existing = await User.findOne({ email: normalizedEmail });
 
     if (existing) {
-      return res.status(409).json({ error: "An account with this email already exists" });
+      return sendError(res, 409, "An account with this email already exists");
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -57,7 +59,7 @@ async function signup(req, res) {
     });
   } catch (error) {
     console.error("Signup error:", error.message);
-    return res.status(500).json({ error: "Failed to sign up user" });
+    return sendServerError(res, "Failed to sign up user");
   }
 }
 
@@ -66,20 +68,20 @@ async function login(req, res) {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: "email and password are required" });
+      return sendError(res, 400, "email and password are required");
     }
 
-    const normalizedEmail = String(email).toLowerCase().trim();
+    const normalizedEmail = normalizeEmail(email);
     const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      return sendError(res, 401, "Invalid email or password");
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      return sendError(res, 401, "Invalid email or password");
     }
 
     const token = createToken(user);
@@ -93,7 +95,7 @@ async function login(req, res) {
     });
   } catch (error) {
     console.error("Login error:", error.message);
-    return res.status(500).json({ error: "Failed to login user" });
+    return sendServerError(res, "Failed to login user");
   }
 }
 
@@ -102,7 +104,7 @@ async function me(req, res) {
     const user = await User.findById(req.user.id).select("_id email createdAt");
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return sendError(res, 404, "User not found");
     }
 
     return res.json({
@@ -114,7 +116,7 @@ async function me(req, res) {
     });
   } catch (error) {
     console.error("Me endpoint error:", error.message);
-    return res.status(500).json({ error: "Failed to fetch user profile" });
+    return sendServerError(res, "Failed to fetch user profile");
   }
 }
 

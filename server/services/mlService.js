@@ -1,6 +1,6 @@
 const axios = require("axios");
 
-const ML_SERVER_URL = process.env.ML_SERVER_URL;
+const ML_SERVER_URL = process.env.ML_SERVER_URL || "http://localhost:8000";
 const ML_TIMEOUT = 30000; // 30 seconds
 
 async function analyzeWithML(logText, codeSnippet) {
@@ -19,7 +19,7 @@ async function analyzeWithML(logText, codeSnippet) {
     // Validate response structure
     const analysis = response.data;
     if (!analysis.severity || !analysis.rootCause || !analysis.suggestedFix) {
-      throw new Error("Invalid response structure from ML Server");
+      throw new Error("Invalid AI response structure from ML Server");
     }
 
     return analysis;

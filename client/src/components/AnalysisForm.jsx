@@ -4,6 +4,7 @@ import CodeInput from './CodeInput'
 import api from '../services/api'
 import LoadingSpinner from './LoadingSpinner'
 import ResultPanel from './ResultPanel'
+import { getErrorMessage } from '../utils/errors'
 
 export default function AnalysisForm() {
   const [logText, setLogText] = useState('')
@@ -34,12 +35,7 @@ export default function AnalysisForm() {
       setLogText('')
       setCodeSnippet('')
     } catch (err) {
-      setError(
-        err.response?.data?.error ||
-          err.response?.data?.message ||
-          err.message ||
-          'Failed to analyze incident. Please try again.'
-      )
+      setError(getErrorMessage(err, 'Failed to analyze incident. Please try again.'))
       console.error('Analysis error:', err)
     } finally {
       setLoading(false)

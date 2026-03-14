@@ -1,7 +1,7 @@
 import axios from 'axios'
+import { STORAGE_KEYS } from '../constants/storage'
 
-const API_URL = import.meta.env.VITE_API_URL
-const TOKEN_KEY = 'fixbot_token'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const api = axios.create({
   baseURL: API_URL,
@@ -14,7 +14,7 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem(TOKEN_KEY)
+    const token = localStorage.getItem(STORAGE_KEYS.token)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -39,7 +39,7 @@ api.interceptors.response.use(
 
 // API methods
 const apiService = {
-  TOKEN_KEY,
+  TOKEN_KEY: STORAGE_KEYS.token,
 
   // Analyze incident
   analyzeIncident: (data) => api.post('/api/incidents/analyze', data),

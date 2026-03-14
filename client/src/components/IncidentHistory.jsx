@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react'
 import api from '../services/api'
 import LoadingSpinner from './LoadingSpinner'
 import SeverityBadge from './SeverityBadge'
+import { getErrorMessage } from '../utils/errors'
+import { normalizeSeverity, SEVERITY_LEVELS } from '../utils/severity'
+
+const ALL_FILTER = 'All'
 
 export default function IncidentHistory() {
   const [incidents, setIncidents] = useState([])
   const [loading, setLoading] = useState(true)
   const [clearing, setClearing] = useState(false)
   const [error, setError] = useState('')
-  const [filter, setFilter] = useState('All')
+  const [filter, setFilter] = useState(ALL_FILTER)
 
   useEffect(() => {
     fetchIncidents()
@@ -22,7 +26,7 @@ export default function IncidentHistory() {
       const response = await api.getIncidents()
       setIncidents(response.data?.data || [])
     } catch (err) {
-      setError('Failed to load incident history. Please try again.')
+      setError(getErrorMessage(err, 'Failed to load incident history. Please try again.'))
       console.error('Fetch error:', err)
     } finally {
       setLoading(false)
@@ -30,7 +34,7 @@ export default function IncidentHistory() {
   }
 
   const filteredIncidents = incidents.filter(
-    (incident) => filter === 'All' || incident.severity === filter
+    (incident) => filter === ALL_FILTER || normalizeSeverity(incident.severity) === filter
   )
 
   const handleClearAll = async () => {
@@ -44,7 +48,7 @@ export default function IncidentHistory() {
       await api.clearIncidents()
       setIncidents([])
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to clear incident history. Please try again.')
+      setError(getErrorMessage(err, 'Failed to clear incident history. Please try again.'))
       console.error('Clear history error:', err)
     } finally {
       setClearing(false)
@@ -85,7 +89,7 @@ export default function IncidentHistory() {
 
       {/* Filter */}
       <div className="flex flex-wrap gap-2">
-        {['All', 'Critical', 'Warning', 'Minor'].map((severity) => (
+        {[ALL_FILTER, ...SEVERITY_LEVELS].map((severity) => (
           <button
             key={severity}
             onClick={() => setFilter(severity)}

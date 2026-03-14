@@ -1,115 +1,128 @@
 # FixBot
 
-AI-powered incident analysis platform that turns logs and stack traces into concrete root causes and production-ready code fixes.
+FixBot is an AI-powered incident response platform that converts production logs and code context into actionable root-cause analysis and concrete remediation guidance.
 
-FixBot is built as three deployable services:
-- `client` - Vite + React UI
-- `server` - Express API, auth, and MongoDB persistence
-- `ml-server` - Express AI reasoning service with provider fallback
+The repository is organized as three independently deployable services:
 
----
+- client: React and Vite frontend
+- server: Express API with authentication and MongoDB persistence
+- ml-server: Express AI reasoning service with provider fallback
 
-## Why FixBot
+## Table of Contents
 
-Production debugging is usually slow, manual, and inconsistent. FixBot shortens the incident-to-fix loop by:
-- analyzing real log text and optional code snippets,
-- classifying severity,
-- generating context-aware fixes and explanations,
-- storing history per authenticated user,
-- emailing analysis reports automatically (when SMTP is configured),
-- using resilient AI routing (Resinix primary, Gemini fallback).
+1. Overview
+2. Key Capabilities
+3. System Architecture
+4. Tech Stack
+5. Repository Structure
+6. Prerequisites
+7. Environment Configuration
+8. Local Development Setup
+9. API Surface
+10. AI Processing Flow
+11. Scripts
+12. Deployment Notes
+13. Troubleshooting
+14. Security and Operations
 
----
+## Overview
 
-## Core Features
+FixBot is designed to reduce mean-time-to-resolution during incident response by combining:
 
-- Log + code analysis endpoint with strict input validation
-- Severity classification (`Critical`, `Warning`, `Minor`)
-- Root-cause diagnosis and concrete fix suggestion
-- Confidence score (`0-100`)
-- JWT authentication (`signup`, `login`, `me`)
-- User-scoped incident history
-- Delete one incident or clear all incident history
-- Optional email notification with incident analysis attachment
-- Dual AI provider strategy for higher availability
+- deterministic validation and persistence in the API layer,
+- resilient provider routing in the ML layer,
+- and a fast user workflow in the client layer.
 
----
+Each analysis can be stored per authenticated user, filtered by severity, and optionally delivered by email.
 
-## Architecture
+## Key Capabilities
+
+- Incident analysis from log text and optional code snippet
+- Severity classification into Critical, Warning, or Minor
+- Structured root cause, suggested fix, explanation, and confidence score
+- JWT-based authentication with profile endpoint
+- User-scoped incident history with pagination and filtering
+- Incident deletion by ID and bulk clear for current user
+- Optional SMTP email notifications with analysis attachment
+- AI provider fallback strategy for improved availability
+
+## System Architecture
 
 ```text
-[React Client]
-    |
-    | HTTP
-    v
-[Server API + MongoDB]
-    |
-    | HTTP
-    v
-[ML Server]
-  |        \
-  |         \
-Resinix   Gemini (fallback)
+[Client: React + Vite]
+        |
+        | HTTP
+        v
+[Server: Express + MongoDB]
+        |
+        | HTTP
+        v
+[ML Server: Express]
+   |                     \
+   |                      \
+[Resinix Primary]   [Gemini Fallback]
 ```
 
-### Service Ports (Local)
-- Client: `5173`
-- Server: `5000`
-- ML Server: `8000`
+Default local ports:
 
----
+- client: 5173
+- server: 5000
+- ml-server: 8000
 
-## Repository Layout
+## Tech Stack
+
+Client:
+
+- React 18
+- Vite
+- Tailwind CSS
+- Axios
+
+Server:
+
+- Node.js and Express
+- MongoDB and Mongoose
+- JWT authentication
+- Bcrypt password hashing
+- Nodemailer for optional email notifications
+
+ML Server:
+
+- Node.js and Express
+- Axios-based AI provider integration
+- Resinix primary inference path
+- Gemini fallback inference path
+
+## Repository Structure
 
 ```text
-Syrus2026_HackHunters/
+fixbot-incident-response-manager/
   client/
   server/
   ml-server/
 ```
 
-### Important Paths
+Important service entry points:
 
-```text
-client/src/services/api.js
-server/server.js
-server/routes/authRoutes.js
-server/routes/incidentRoutes.js
-server/controllers/authController.js
-server/controllers/incidentController.js
-server/services/mlService.js
-ml-server/mlServer.js
-ml-server/routes/analyze.js
-ml-server/services/resinixService.js
-ml-server/prompts/debugPrompt.js
-```
-
----
+- client/src/main.jsx
+- client/src/App.jsx
+- server/server.js
+- ml-server/mlServer.js
 
 ## Prerequisites
 
-- Node.js `20.x` (recommended for Vercel compatibility)
-- npm `9+`
-- MongoDB instance (local or Atlas)
+- Node.js 20.x recommended
+- npm 9+
+- MongoDB (local or Atlas)
 - Resinix API key
-- Gemini API key (recommended as fallback)
-- Optional SMTP credentials for email reports
+- Gemini API key (recommended fallback)
+- SMTP credentials (optional, for email notifications)
 
----
+## Environment Configuration
 
-## Local Setup
+Create environment files for each service.
 
-### 1. Install dependencies
-
-```bash
-cd client && npm install
-cd ../server && npm install
-cd ../ml-server && npm install
-```
-
-### 2. Configure environment variables
-
-#### `server/.env`
+Server environment, server/.env:
 
 ```env
 # MongoDB
@@ -128,7 +141,7 @@ JWT_SECRET=replace_with_a_long_random_secret
 # ML integration
 ML_SERVER_URL=http://localhost:8000
 
-# Optional email notifications
+# Optional SMTP email notifications
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your_email@example.com
@@ -136,22 +149,23 @@ EMAIL_PASS=your_app_password
 EMAIL_FROM=<your_email@example.com>
 ```
 
-#### `ml-server/.env`
+ML server environment, ml-server/.env:
 
 ```env
 PORT=8000
 CORS_ORIGIN=*
 
-# Primary AI
+# Resinix primary
 RESINIX_API_KEY=your_resinix_api_key_here
 RESINIX_API_URL=https://api.resinix.ai/v1/chat/completions
+RESINIX_MODEL=resinix-default
 
-# Fallback AI
+# Gemini fallback
 GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-#### `client/.env`
+Client environment, client/.env:
 
 ```env
 VITE_API_URL=http://localhost:5000
@@ -159,70 +173,69 @@ VITE_APP_NAME=FixBot
 VITE_APP_VERSION=0.1.0
 ```
 
-### 3. Start services (3 terminals)
+## Local Development Setup
+
+1. Install dependencies in all services
 
 ```bash
-# Terminal 1
+cd client && npm install
+cd ../server && npm install
+cd ../ml-server && npm install
+```
+
+2. Configure env files as described above.
+
+3. Start services in separate terminals
+
+```bash
+# terminal 1
 cd ml-server
 npm run dev
 ```
 
 ```bash
-# Terminal 2
+# terminal 2
 cd server
 npm run dev
 ```
 
 ```bash
-# Terminal 3
+# terminal 3
 cd client
 npm run dev
 ```
 
-Open `http://localhost:5173`.
+4. Open the application at http://localhost:5173.
 
----
+## API Surface
 
-## API Overview
+Primary API base URL:
 
-Base URL (server): `http://localhost:5000`
+- http://localhost:5000
 
-### Auth
+Authentication endpoints:
 
-#### `POST /api/auth/signup`
-Create a user account.
+- POST /api/auth/signup
+- POST /api/auth/login
+- GET /api/auth/me
 
-Request:
-```json
-{
-  "email": "user@example.com",
-  "password": "secret123"
-}
-```
+Incident endpoints, authenticated:
 
-Response:
-```json
-{
-  "token": "jwt-token",
-  "user": {
-    "id": "...",
-    "email": "user@example.com"
-  }
-}
-```
+- POST /api/incidents/analyze
+- GET /api/incidents
+- GET /api/incidents/:id
+- DELETE /api/incidents/:id
+- DELETE /api/incidents
 
-#### `POST /api/auth/login`
-Authenticate and return JWT.
+Health endpoints:
 
-#### `GET /api/auth/me`
-Get current user profile. Requires `Authorization: Bearer <token>`.
+- server: GET /
+- server: GET /health
+- ml-server: GET /
+- ml-server: GET /health
 
-### Incidents (Authenticated)
+Common analyze request payload:
 
-#### `POST /api/incidents/analyze`
-Analyze an incident and persist it.
-
-Request:
 ```json
 {
   "logText": "TypeError: Cannot read properties of undefined",
@@ -230,66 +243,65 @@ Request:
 }
 ```
 
-Response fields include:
-- `severity`
-- `rootCause`
-- `suggestedFix`
-- `explanation`
-- `confidenceScore`
-- stored incident metadata (`_id`, timestamps, etc.)
+Common analyze response fields:
 
-#### `GET /api/incidents`
-Get user incident history.
+- severity
+- rootCause
+- suggestedFix
+- explanation
+- confidenceScore
+- persisted incident metadata
 
-Query params:
-- `severity`
-- `limit` (default `50`, max `100`)
-- `skip` (default `0`)
+## AI Processing Flow
 
-#### `GET /api/incidents/:id`
-Get one incident by ID.
+1. Client sends logText and optional codeSnippet to server.
+2. Server validates payload and calls ml-server analyze endpoint.
+3. ML server builds the debugging prompt.
+4. Resinix provider is called as primary.
+5. On eligible failures, Gemini fallback is attempted.
+6. ML output is normalized to stable response fields.
+7. Server persists the incident and returns the final response.
+8. If SMTP is configured, an email report is sent.
 
-#### `DELETE /api/incidents/:id`
-Delete one incident by ID.
+## Scripts
 
-#### `DELETE /api/incidents`
-Clear all incidents for current user.
+Client scripts:
 
-### Health Endpoints
+- npm run dev
+- npm run build
+- npm run preview
+- npm run lint
+- npm run lint:fix
 
-- Server: `GET /health`
-- ML Server: `GET /health`
+Server scripts:
 
----
+- npm run dev
+- npm start
+- npm run backfill:user-email
 
-## AI Flow
+ML server scripts:
 
-1. Client submits `logText` and optional `codeSnippet`.
-2. Server validates payload and calls ML Server (`/api/analyze`).
-3. ML Server builds a structured prompt.
-4. Primary provider (Resinix) is called first.
-5. On eligible failures, fallback provider (Gemini) is used.
-6. Normalized analysis is returned and persisted.
-7. Server returns the final incident object to client.
+- npm run dev
+- npm start
 
----
+## Deployment Notes
 
-## Deployment (Vercel)
+Recommended deployment model is three separate projects:
 
-This repository is deployed as three separate Vercel projects:
-- `client`
-- `server`
-- `ml-server`
+- client
+- server
+- ml-server
 
-Each service already has its own `vercel.json`.
+Each service includes its own vercel.json and can be deployed independently.
 
-### Recommended deployment process
+Suggested deployment sequence:
 
-1. Set Node.js runtime to `20.x` in each Vercel project settings.
-2. Configure environment variables in each Vercel project.
-3. Deploy each project from its own folder root.
+1. Configure environment variables per service.
+2. Deploy ml-server.
+3. Deploy server with ML_SERVER_URL pointing to deployed ml-server.
+4. Deploy client with VITE_API_URL pointing to deployed server.
 
-### Local pre-deploy smoke checks
+Optional local Vercel smoke checks:
 
 ```bash
 cd client && npx vercel build --yes
@@ -297,59 +309,37 @@ cd ../server && npx vercel build --yes
 cd ../ml-server && npx vercel build --yes
 ```
 
-If you see `Project Settings could not be retrieved`, re-link that folder using Vercel CLI.
-
----
-
-## Scripts
-
-### Client
-- `npm run dev`
-- `npm run build`
-- `npm run preview`
-- `npm run lint`
-- `npm run lint:fix`
-
-### Server
-- `npm run dev`
-- `npm run start`
-- `npm run backfill:user-email`
-
-### ML Server
-- `npm run dev`
-- `npm run start`
-
----
-
 ## Troubleshooting
 
-### Server initialization fails
-Check:
-- `JWT_SECRET` exists
-- `MONGO_URI` exists
-- `MONGO_DB_NAME` exists
+Server fails at startup:
 
-### Incidents fail with 503
-Check:
-- ML server is running
-- `ML_SERVER_URL` is correct
+- verify JWT_SECRET, MONGO_URI, MONGO_DB_NAME,
+- verify USERS_COLLECTION_NAME and INCIDENTS_COLLECTION_NAME.
 
-### CORS errors in browser
-Check:
-- `server/.env` `CORS_ORIGIN`
-- `client/.env` `VITE_API_URL`
+Incident analysis fails with service unavailable:
 
-### No email notifications
-Email sending is optional. Configure SMTP env vars in server and verify credentials.
+- ensure ml-server is running,
+- ensure ML_SERVER_URL is correct and reachable.
 
-### AI authentication/rate-limit errors
-Verify Resinix and Gemini API keys and quota status.
+CORS errors in browser:
 
----
+- verify server CORS_ORIGIN,
+- verify client VITE_API_URL.
 
-## Security Notes
+No email notifications:
 
-- Keep `.env` files out of version control
-- Use a strong `JWT_SECRET`
-- Restrict CORS in production to known origins
-- Rotate AI and SMTP keys periodically
+- SMTP is optional,
+- verify EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM.
+
+AI auth or quota issues:
+
+- verify Resinix and Gemini keys,
+- check provider quotas and rate limits.
+
+## Security and Operations
+
+- Keep all .env files out of source control.
+- Use a strong JWT secret in all non-local environments.
+- Restrict CORS to trusted origins in production.
+- Rotate API and SMTP credentials periodically.
+- Monitor 401, 429, and 5xx rates across server and ml-server logs.

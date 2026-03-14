@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import api from '../services/api'
+import { getErrorMessage } from '../utils/errors'
 
 const initialForm = {
   email: '',
@@ -44,7 +45,7 @@ export default function AuthForm({ onAuthSuccess }) {
       onAuthSuccess({ token, user })
       setForm(initialForm)
     } catch (err) {
-      setError(err.response?.data?.error || 'Authentication failed. Please try again.')
+      setError(getErrorMessage(err, 'Authentication failed. Please try again.'))
     } finally {
       setLoading(false)
     }

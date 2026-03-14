@@ -1,9 +1,7 @@
 const mongoose = require("mongoose");
-const USERS_COLLECTION_NAME = process.env.USERS_COLLECTION_NAME;
+const { requireEnv } = require("../utils/env");
 
-if (!USERS_COLLECTION_NAME) {
-  throw new Error("Missing required environment variable: USERS_COLLECTION_NAME");
-}
+const USERS_COLLECTION_NAME = requireEnv("USERS_COLLECTION_NAME");
 
 const userSchema = new mongoose.Schema(
   {

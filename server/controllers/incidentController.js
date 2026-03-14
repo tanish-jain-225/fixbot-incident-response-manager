@@ -1,6 +1,11 @@
 const Incident = require("../models/Incident");
 const { analyzeWithML } = require("../services/mlService");
 const { sendIncidentEmail } = require("../services/emailService");
+const { sendError, sendServerError } = require("../utils/http");
+const { mapMlServiceError } = require("../utils/mlErrors");
+const { normalizeEmail, isValidObjectId, parsePagination } = require("../utils/request");
+
+const MAX_INCIDENT_INPUT_LENGTH = 50000;
 
 function normalizeSeverity(severity) {
   const value = String(severity || "").toLowerCase();
@@ -17,15 +22,15 @@ async function analyzeIncident(req, res) {
 
     // Validation
     if (!logText || typeof logText !== "string" || logText.trim() === "") {
-      return res.status(400).json({ error: "logText is required and must be non-empty" });
+      return sendError(res, 400, "logText is required and must be non-empty");
     }
 
-    if (logText.length > 50000) {
-      return res.status(400).json({ error: "logText exceeds maximum length of 50000 characters" });
+    if (logText.length > MAX_INCIDENT_INPUT_LENGTH) {
+      return sendError(res, 400, "logText exceeds maximum length of 50000 characters");
     }
 
-    if (codeSnippet && codeSnippet.length > 50000) {
-      return res.status(400).json({ error: "codeSnippet exceeds maximum length of 50000 characters" });
+    if (codeSnippet && codeSnippet.length > MAX_INCIDENT_INPUT_LENGTH) {
+      return sendError(res, 400, "codeSnippet exceeds maximum length of 50000 characters");
     }
 
     const analysis = await analyzeWithML(logText, codeSnippet || "");
@@ -58,51 +63,41 @@ async function analyzeIncident(req, res) {
       console.error("Incident email notification failed:", emailError.message);
     }
 
-    res.status(201).json({
+    return res.status(201).json({
       ...incident.toObject(),
       userEmail: incident.userEmail || userEmail,
       emailNotificationSent: emailSent,
     });
   } catch (error) {
     console.error("Analyze incident error:", error.message);
-    
-    if (error.message.includes("RESINIX_API_KEY") || error.message.includes("GEMINI_API_KEY")) {
-      return res.status(500).json({ error: "ML Service not configured properly" });
-    }
-    if (error.message.includes("rate limit exceeded")) {
-      return res.status(429).json({ error: "AI rate limit exceeded. Please try again later." });
-    }
-    if (error.message.includes("authentication failed")) {
-      return res.status(500).json({ error: "ML Service authentication error" });
-    }
-    if (error.message.includes("timed out")) {
-      return res.status(504).json({ error: "ML Service request timed out" });
-    }
-    if (error.message.includes("invalid AI response")) {
-      return res.status(502).json({ error: "ML Service returned an invalid response" });
-    }
-    if (error.message.includes("not running") || error.message.includes("Cannot reach") || error.message.includes("connect")) {
-      return res.status(503).json({ error: "ML Service is unavailable" });
+
+    const mappedMlError = mapMlServiceError(error);
+    if (mappedMlError) {
+      return sendError(res, mappedMlError.statusCode, mappedMlError.message);
     }
 
-    res.status(500).json({ error: "Failed to analyze incident" });
+    return sendServerError(res, "Failed to analyze incident");
   }
 }
 
 async function getIncidents(req, res) {
   try {
-    const userEmail = String(req.user.email || "").toLowerCase().trim();
-    const { severity, limit = 50, skip = 0 } = req.query;
+    const userEmail = normalizeEmail(req.user.email);
+    const { severity } = req.query;
+    const { limit, skip } = parsePagination(req.query, {
+      defaultLimit: 50,
+      maxLimit: 100,
+    });
 
     let query = { userEmail };
     if (severity) {
-      query.severity = severity;
+      query.severity = normalizeSeverity(severity);
     }
 
     const incidents = await Incident.find(query)
       .sort({ createdAt: -1, _id: -1 })
-      .limit(Math.min(parseInt(limit) || 50, 100))
-      .skip(parseInt(skip) || 0);
+      .limit(limit)
+      .skip(skip);
 
     const incidentsWithEmail = incidents.map((incident) => ({
       ...incident.toObject(),
@@ -111,59 +106,59 @@ async function getIncidents(req, res) {
 
     const total = await Incident.countDocuments(query);
 
-    res.json({
+    return res.json({
       data: incidentsWithEmail,
       total,
-      limit: Math.min(parseInt(limit) || 50, 100),
-      skip: parseInt(skip) || 0,
+      limit,
+      skip,
     });
   } catch (error) {
     console.error("Get incidents error:", error.message);
-    res.status(500).json({ error: "Failed to fetch incidents" });
+    return sendServerError(res, "Failed to fetch incidents");
   }
 }
 
 async function getIncidentById(req, res) {
   try {
-    const userEmail = String(req.user.email || "").toLowerCase().trim();
+    const userEmail = normalizeEmail(req.user.email);
     const { id } = req.params;
-    
-    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({ error: "Invalid incident ID format" });
+
+    if (!isValidObjectId(id)) {
+      return sendError(res, 400, "Invalid incident ID format");
     }
 
     const incident = await Incident.findOne({ _id: id, userEmail });
 
     if (!incident) {
-      return res.status(404).json({ error: "Incident not found" });
+      return sendError(res, 404, "Incident not found");
     }
 
-    res.json({
+    return res.json({
       ...incident.toObject(),
       userEmail: incident.userEmail || req.user.email,
     });
   } catch (error) {
     console.error("Get incident by ID error:", error.message);
-    res.status(500).json({ error: "Failed to fetch incident" });
+    return sendServerError(res, "Failed to fetch incident");
   }
 }
 
 async function deleteIncident(req, res) {
   try {
-    const userEmail = String(req.user.email || "").toLowerCase().trim();
+    const userEmail = normalizeEmail(req.user.email);
     const { id } = req.params;
 
-    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({ error: "Invalid incident ID format" });
+    if (!isValidObjectId(id)) {
+      return sendError(res, 400, "Invalid incident ID format");
     }
 
     const incident = await Incident.findOneAndDelete({ _id: id, userEmail });
 
     if (!incident) {
-      return res.status(404).json({ error: "Incident not found" });
+      return sendError(res, 404, "Incident not found");
     }
 
-    res.json({
+    return res.json({
       message: "Incident deleted successfully",
       incident: {
         ...incident.toObject(),
@@ -172,24 +167,24 @@ async function deleteIncident(req, res) {
     });
   } catch (error) {
     console.error("Delete incident error:", error.message);
-    res.status(500).json({ error: "Failed to delete incident" });
+    return sendServerError(res, "Failed to delete incident");
   }
 }
 
 async function clearIncidents(req, res) {
   try {
-    const userEmail = String(req.user.email || "").toLowerCase().trim();
+    const userEmail = normalizeEmail(req.user.email);
 
     const result = await Incident.deleteMany({ userEmail });
 
-    res.json({
+    return res.json({
       message: "Incident history cleared successfully",
       deletedCount: result.deletedCount || 0,
       userEmail,
     });
   } catch (error) {
     console.error("Clear incidents error:", error.message);
-    res.status(500).json({ error: "Failed to clear incident history" });
+    return sendServerError(res, "Failed to clear incident history");
   }
 }
 

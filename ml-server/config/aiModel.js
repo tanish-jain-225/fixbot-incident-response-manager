@@ -12,11 +12,14 @@ const SYSTEM_PROMPT =
   "You are a senior software engineer specializing in debugging and incident resolution. " +
   "Always respond with valid JSON matching the exact schema provided.";
 
+const DEFAULT_RESINIX_API_URL = "https://api.resinix.ai/v1/chat/completions";
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+
 // ── Primary: Resinix ────────────────────────────────────
 const primary = {
   provider: "resinix",
-  name: "resinix-default",
-  apiUrl: process.env.RESINIX_API_URL,
+  name: process.env.RESINIX_MODEL || "resinix-default",
+  apiUrl: process.env.RESINIX_API_URL || DEFAULT_RESINIX_API_URL,
   get apiKey() { return process.env.RESINIX_API_KEY },
   temperature: 0.3,
   maxTokens: 1024,
@@ -56,7 +59,7 @@ const primary = {
 //
 const fallback = {
   provider: "google-ai-studio",
-  name: process.env.GEMINI_MODEL,
+  name: process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL,
   get apiUrl() {
     return `https://generativelanguage.googleapis.com/v1beta/models/${this.name}:generateContent`;
   },
@@ -107,16 +110,35 @@ const FALLBACK_TRIGGER_CODES = new Set([
 ]);
 
 function shouldFallback(error) {
+  if (!error) return false;
   if (FALLBACK_TRIGGER_CODES.has(error.code)) return true;
   const status = error.response?.status;
   // Trigger fallback on server-side errors but NOT on 401/429 (key/rate issues)
   return status != null && status >= 500;
 }
 
+function getHealthSummary() {
+  return {
+    primary: {
+      provider: primary.provider,
+      model: primary.name,
+      apiUrl: primary.apiUrl,
+      apiKeyConfigured: Boolean(primary.apiKey),
+    },
+    fallback: {
+      provider: fallback.provider,
+      model: fallback.name,
+      apiUrl: fallback.apiUrl,
+      apiKeyConfigured: Boolean(fallback.apiKey),
+    },
+  };
+}
+
 const aiModel = {
   primary,
   fallback,
   shouldFallback,
+  getHealthSummary,
 };
 
 module.exports = aiModel;

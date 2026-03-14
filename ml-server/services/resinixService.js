@@ -1,6 +1,10 @@
 const axios = require("axios");
 const aiModel = require("../config/aiModel");
 
+function isTimeoutError(error) {
+  return error && (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT");
+}
+
 function extractJsonCandidate(content) {
   if (typeof content !== "string") {
     return null;
@@ -112,9 +116,7 @@ async function callModel(model, prompt) {
   return normalizeParsedResponse(parsed, content);
 }
 
-// ── Main entry point: Resinix → Gemini fallback ──────────
-async function queryResinix(prompt) {
-  // ── 1. Try primary (Resinix) ──────────────────────────
+async function callPrimaryProvider(prompt) {
   try {
     const result = await callModel(aiModel.primary, prompt);
     console.log(`[ai] Response from primary (${aiModel.primary.provider})`);
@@ -127,6 +129,9 @@ async function queryResinix(prompt) {
     if (primaryError.response?.status === 429) {
       throw new Error("Resinix API rate limit exceeded");
     }
+    if (isTimeoutError(primaryError)) {
+      throw new Error("Resinix API request timeout");
+    }
 
     // Only attempt fallback for network/server errors
     if (!aiModel.shouldFallback(primaryError)) {
@@ -137,9 +142,12 @@ async function queryResinix(prompt) {
       `[ai] Primary (${aiModel.primary.provider}) failed: ${primaryError.message}. ` +
       `Falling back to ${aiModel.fallback.provider}...`
     );
-  }
 
-  // ── 2. Fallback (Google Gemini) ───────────────────────
+    return null;
+  }
+}
+
+async function callFallbackProvider(prompt) {
   try {
     const result = await callModel(aiModel.fallback, prompt);
     console.log(`[ai] Response from fallback (${aiModel.fallback.provider})`);
@@ -151,11 +159,21 @@ async function queryResinix(prompt) {
     if (fallbackError.response?.status === 429) {
       throw new Error("Gemini API rate limit exceeded");
     }
-    if (fallbackError.code === "ECONNABORTED" || fallbackError.code === "ETIMEDOUT") {
+    if (isTimeoutError(fallbackError)) {
       throw new Error("Gemini API request timeout");
     }
     throw new Error(`Both AI providers failed. Last error: ${fallbackError.message}`);
   }
+}
+
+// Main entry point: Resinix -> Gemini fallback
+async function queryResinix(prompt) {
+  const primaryResult = await callPrimaryProvider(prompt);
+  if (primaryResult) {
+    return primaryResult;
+  }
+
+  return callFallbackProvider(prompt);
 }
 
 module.exports = { queryResinix };
