@@ -87,18 +87,18 @@ function normalizeParsedResponse(parsed, rawContent) {
     data.rootCause ||
     data.root_cause ||
     data.cause ||
-    "Unable to determine root cause from AI response";
+    "";
 
   const suggestedFix =
     data.suggestedFix ||
     data.suggested_fix ||
     data.fix ||
-    "No direct code fix was provided by the AI.";
+    "";
 
   const explanation =
     data.explanation ||
     data.reasoning ||
-    "Analysis completed with a fallback-normalized response.";
+    "";
 
   const rawSeverity = String(data.severity || data.priority || "minor").toLowerCase();
   const severity = rawSeverity.includes("crit")

@@ -24,7 +24,7 @@ router.post("/", async (req, res) => {
     const analysis = await queryResinix(prompt);
 
     // Normalize all provider responses to one stable client contract.
-    return res.json(normalizeAnalysisResponse(analysis));
+    return res.json(normalizeAnalysisResponse(analysis, { logText, codeSnippet }));
   } catch (error) {
     console.error("Analysis error:", error.message);
 
