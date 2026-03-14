@@ -57,7 +57,6 @@ async function sendIncidentEmail({ toEmail, incident }) {
   const transporter = buildTransporter();
 
   if (!transporter) {
-    console.warn("Email configuration missing. Skipping email notification.");
     return false;
   }
 

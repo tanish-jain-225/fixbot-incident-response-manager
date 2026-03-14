@@ -24,7 +24,6 @@ function parseProviderJson(model, content) {
 
     return JSON.parse(jsonCandidate);
   } catch {
-    console.warn(`[${model.provider}] JSON parse failed, using fallback-normalized response.`);
     return {};
   }
 }
@@ -140,7 +139,6 @@ async function callModel(model, prompt) {
 async function callPrimaryProvider(prompt) {
   try {
     const result = await callModel(aiModel.primary, prompt);
-    console.log(`[ai] Response from primary (${aiModel.primary.provider})`);
     return result;
   } catch (primaryError) {
     // Surface hard provider failures immediately.
@@ -154,11 +152,6 @@ async function callPrimaryProvider(prompt) {
       throw primaryError;
     }
 
-    console.warn(
-      `[ai] Primary (${aiModel.primary.provider}) failed: ${primaryError.message}. ` +
-      `Falling back to ${aiModel.fallback.provider}...`
-    );
-
     return null;
   }
 }
@@ -166,7 +159,6 @@ async function callPrimaryProvider(prompt) {
 async function callFallbackProvider(prompt) {
   try {
     const result = await callModel(aiModel.fallback, prompt);
-    console.log(`[ai] Response from fallback (${aiModel.fallback.provider})`);
     return result;
   } catch (fallbackError) {
     mapProviderAuthOrLimitError(fallbackError, "Gemini");

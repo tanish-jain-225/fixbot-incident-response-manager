@@ -31,7 +31,6 @@ function registerMiddlewares() {
 
 function registerRequestLogger() {
   app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
   });
 }
@@ -112,7 +111,6 @@ module.exports = async (req, res) => {
     await connectToDatabase();
     return app(req, res);
   } catch (error) {
-    console.error("❌ Server initialization error:", error.message);
     return sendServerError(res, "Server initialization error");
   }
 };
@@ -127,7 +125,6 @@ if (require.main === module) {
       });
     })
     .catch((err) => {
-      console.error("❌ MongoDB connection error:", err.message);
       process.exit(1);
     });
 }

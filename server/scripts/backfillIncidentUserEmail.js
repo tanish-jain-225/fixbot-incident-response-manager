@@ -29,7 +29,6 @@ async function run() {
     updatedCount += 1;
   }
 
-  console.log(`Backfill complete. Updated incidents: ${updatedCount}`);
   await mongoose.disconnect();
 }
 
