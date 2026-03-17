@@ -17,7 +17,7 @@ export default function Header({ currentPage, setCurrentPage, user, onLogout }) 
       <div className="container mx-auto px-4">
         <div className="glass rounded-2xl px-4 py-4 md:px-6 md:py-5 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 grid place-items-center overflow-hidden">
+            <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
               <img
                 src="/support.ico"
                 alt="FixBot logo"

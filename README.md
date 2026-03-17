@@ -1,29 +1,12 @@
 # FixBot
 
-FixBot is an AI-powered incident response platform that converts production logs and code context into actionable root-cause analysis and concrete remediation guidance.
+FixBot is an AI-powered incident response platform that converts production logs and optional code context into actionable root-cause analysis and concrete remediation guidance.
 
-The repository is organized as three independently deployable services:
+The repository is organized into three independently deployable services:
 
-- client: React and Vite frontend
-- server: Express API with authentication and MongoDB persistence
-- ml-server: Express AI reasoning service with provider fallback
-
-## Table of Contents
-
-1. Overview
-2. Key Capabilities
-3. System Architecture
-4. Tech Stack
-5. Repository Structure
-6. Prerequisites
-7. Environment Configuration
-8. Local Development Setup
-9. API Surface
-10. AI Processing Flow
-11. Scripts
-12. Deployment Notes
-13. Troubleshooting
-14. Security and Operations
+- [client](client): React + Vite frontend
+- [server](server): Express API with authentication and MongoDB persistence
+- [ml-server](ml-server): Express AI reasoning service with provider fallback
 
 ## Overview
 
@@ -34,6 +17,11 @@ FixBot is designed to reduce mean-time-to-resolution during incident response by
 - and a fast user workflow in the client layer.
 
 Each analysis can be stored per authenticated user, filtered by severity, and optionally delivered by email.
+
+## Demo Video
+
+- YouTube demo: [Demo-Video](https://youtu.be/6hfmPYoWe_E?si=HWFHH2a7M16gVkSm)
+- Presentation PDF: [HackHunters-Syrus'26-PPT](https://drive.google.com/file/d/1QdLJKr3zoZYcwhBGMcSKA3-oD0mAE9YQ/view)
 
 ## Key Capabilities
 
@@ -104,10 +92,16 @@ fixbot-incident-response-manager/
 
 Important service entry points:
 
-- client/src/main.jsx
-- client/src/App.jsx
-- server/server.js
-- ml-server/mlServer.js
+- [client/src/main.jsx](client/src/main.jsx)
+- [client/src/App.jsx](client/src/App.jsx)
+- [server/server.js](server/server.js)
+- [ml-server/mlServer.js](ml-server/mlServer.js)
+
+## Service Documentation
+
+- [client/README.md](client/README.md)
+- [server/README.md](server/README.md)
+- [ml-server/README.md](ml-server/README.md)
 
 ## Prerequisites
 
@@ -122,7 +116,7 @@ Important service entry points:
 
 Create environment files for each service.
 
-Server environment, server/.env:
+Server environment ([server/.env.example](server/.env.example) as reference), [server/.env](server/.env):
 
 ```env
 # MongoDB
@@ -149,7 +143,7 @@ EMAIL_PASS=your_app_password
 EMAIL_FROM=<your_email@example.com>
 ```
 
-ML server environment, ml-server/.env:
+ML server environment ([ml-server/.env.example](ml-server/.env.example) as reference), [ml-server/.env](ml-server/.env):
 
 ```env
 PORT=8000
@@ -165,7 +159,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-Client environment, client/.env:
+Client environment ([client/.env.example](client/.env.example) as reference), [client/.env](client/.env):
 
 ```env
 VITE_API_URL=http://localhost:5000
@@ -175,7 +169,7 @@ VITE_APP_VERSION=0.1.0
 
 ## Local Development Setup
 
-1. Install dependencies in all services
+1. Install dependencies in all services:
 
 ```bash
 cd client && npm install
@@ -183,9 +177,8 @@ cd ../server && npm install
 cd ../ml-server && npm install
 ```
 
-2. Configure env files as described above.
-
-3. Start services in separate terminals
+2. Configure `.env` files as described above.
+3. Start services in separate terminals:
 
 ```bash
 # terminal 1
@@ -215,24 +208,24 @@ Primary API base URL:
 
 Authentication endpoints:
 
-- POST /api/auth/signup
-- POST /api/auth/login
-- GET /api/auth/me
+- `POST /api/auth/signup`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
 
-Incident endpoints, authenticated:
+Incident endpoints (authenticated):
 
-- POST /api/incidents/analyze
-- GET /api/incidents
-- GET /api/incidents/:id
-- DELETE /api/incidents/:id
-- DELETE /api/incidents
+- `POST /api/incidents/analyze`
+- `GET /api/incidents`
+- `GET /api/incidents/:id`
+- `DELETE /api/incidents/:id`
+- `DELETE /api/incidents`
 
 Health endpoints:
 
-- server: GET /
-- server: GET /health
-- ml-server: GET /
-- ml-server: GET /health
+- server: `GET /`
+- server: `GET /health`
+- ml-server: `GET /`
+- ml-server: `GET /health`
 
 Common analyze request payload:
 
@@ -245,16 +238,16 @@ Common analyze request payload:
 
 Common analyze response fields:
 
-- severity
-- rootCause
-- suggestedFix
-- explanation
-- confidenceScore
+- `severity`
+- `rootCause`
+- `suggestedFix`
+- `explanation`
+- `confidenceScore`
 - persisted incident metadata
 
 ## AI Processing Flow
 
-1. Client sends logText and optional codeSnippet to server.
+1. Client sends `logText` and optional `codeSnippet` to server.
 2. Server validates payload and calls ml-server analyze endpoint.
 3. ML server builds the debugging prompt.
 4. Resinix provider is called as primary.
@@ -265,41 +258,45 @@ Common analyze response fields:
 
 ## Scripts
 
-Client scripts:
+Client scripts ([client/package.json](client/package.json)):
 
-- npm run dev
-- npm run build
-- npm run preview
-- npm run lint
-- npm run lint:fix
+- `npm run dev`
+- `npm run build`
+- `npm run preview`
+- `npm run lint`
+- `npm run lint:fix`
 
-Server scripts:
+Server scripts ([server/package.json](server/package.json)):
 
-- npm run dev
-- npm start
-- npm run backfill:user-email
+- `npm run dev`
+- `npm start`
+- `npm run backfill:user-email`
 
-ML server scripts:
+ML server scripts ([ml-server/package.json](ml-server/package.json)):
 
-- npm run dev
-- npm start
+- `npm run dev`
+- `npm start`
 
 ## Deployment Notes
 
 Recommended deployment model is three separate projects:
 
-- client
-- server
-- ml-server
+- [client](client)
+- [server](server)
+- [ml-server](ml-server)
 
-Each service includes its own vercel.json and can be deployed independently.
+Each service includes its own `vercel.json` and can be deployed independently:
+
+- [client/vercel.json](client/vercel.json)
+- [server/vercel.json](server/vercel.json)
+- [ml-server/vercel.json](ml-server/vercel.json)
 
 Suggested deployment sequence:
 
 1. Configure environment variables per service.
 2. Deploy ml-server.
-3. Deploy server with ML_SERVER_URL pointing to deployed ml-server.
-4. Deploy client with VITE_API_URL pointing to deployed server.
+3. Deploy server with `ML_SERVER_URL` pointing to deployed ml-server.
+4. Deploy client with `VITE_API_URL` pointing to deployed server.
 
 Optional local Vercel smoke checks:
 
@@ -313,32 +310,32 @@ cd ../ml-server && npx vercel build --yes
 
 Server fails at startup:
 
-- verify JWT_SECRET, MONGO_URI, MONGO_DB_NAME,
-- verify USERS_COLLECTION_NAME and INCIDENTS_COLLECTION_NAME.
+- verify `JWT_SECRET`, `MONGO_URI`, `MONGO_DB_NAME`
+- verify `USERS_COLLECTION_NAME` and `INCIDENTS_COLLECTION_NAME`
 
 Incident analysis fails with service unavailable:
 
-- ensure ml-server is running,
-- ensure ML_SERVER_URL is correct and reachable.
+- ensure ml-server is running
+- ensure `ML_SERVER_URL` is correct and reachable
 
 CORS errors in browser:
 
-- verify server CORS_ORIGIN,
-- verify client VITE_API_URL.
+- verify server `CORS_ORIGIN`
+- verify client `VITE_API_URL`
 
 No email notifications:
 
-- SMTP is optional,
-- verify EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, EMAIL_FROM.
+- SMTP is optional
+- verify `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM`
 
 AI auth or quota issues:
 
-- verify Resinix and Gemini keys,
-- check provider quotas and rate limits.
+- verify Resinix and Gemini keys
+- check provider quotas and rate limits
 
 ## Security and Operations
 
-- Keep all .env files out of source control.
+- Keep all `.env` files out of source control.
 - Use a strong JWT secret in all non-local environments.
 - Restrict CORS to trusted origins in production.
 - Rotate API and SMTP credentials periodically.

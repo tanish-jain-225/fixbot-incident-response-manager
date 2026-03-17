@@ -5,6 +5,45 @@ function isTimeoutError(error) {
   return error && (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT");
 }
 
+function stringifyErrorDetails(value) {
+  if (!value) {
+    return "Unknown error";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "object") {
+    if (typeof value.message === "string" && value.message.trim()) {
+      return value.message;
+    }
+
+    if (value.error && typeof value.error === "object" && typeof value.error.message === "string") {
+      return value.error.message;
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+
+  return String(value);
+}
+
+function formatProviderError(providerName, error) {
+  const status = error?.response?.status;
+  const details = stringifyErrorDetails(error?.response?.data?.error || error?.response?.data || error?.message);
+
+  if (status) {
+    return `${providerName} (${status}): ${details}`;
+  }
+
+  return `${providerName}: ${details}`;
+}
+
 function getResponseText(model, responseData) {
   const content = model.parseResponse(responseData);
   if (!content) {
@@ -139,7 +178,7 @@ async function callModel(model, prompt) {
 async function callPrimaryProvider(prompt) {
   try {
     const result = await callModel(aiModel.primary, prompt);
-    return result;
+    return { result, primaryError: null };
   } catch (primaryError) {
     // Surface hard provider failures immediately.
     mapProviderAuthOrLimitError(primaryError, "Resinix");
@@ -152,11 +191,11 @@ async function callPrimaryProvider(prompt) {
       throw primaryError;
     }
 
-    return null;
+    return { result: null, primaryError };
   }
 }
 
-async function callFallbackProvider(prompt) {
+async function callFallbackProvider(prompt, primaryError) {
   try {
     const result = await callModel(aiModel.fallback, prompt);
     return result;
@@ -165,18 +204,21 @@ async function callFallbackProvider(prompt) {
     if (isTimeoutError(fallbackError)) {
       throw new Error("Gemini API request timeout");
     }
-    throw new Error(`Both AI providers failed. Last error: ${fallbackError.message}`);
+
+    const primaryDetails = formatProviderError("Resinix", primaryError);
+    const fallbackDetails = formatProviderError("Gemini", fallbackError);
+    throw new Error(`Both AI providers failed. ${primaryDetails}. ${fallbackDetails}`);
   }
 }
 
 // Main entry point: Resinix -> Gemini fallback
 async function queryResinix(prompt) {
-  const primaryResult = await callPrimaryProvider(prompt);
+  const { result: primaryResult, primaryError } = await callPrimaryProvider(prompt);
   if (primaryResult) {
     return primaryResult;
   }
 
-  return callFallbackProvider(prompt);
+  return callFallbackProvider(prompt, primaryError);
 }
 
 module.exports = { queryResinix };

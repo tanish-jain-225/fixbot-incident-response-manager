@@ -24,6 +24,7 @@ function mapMlRequestError(error) {
   if (status === 400) return new Error(`Invalid request to ML Server: ${mlError}`);
   if (status === 401) return new Error(`ML Service authentication failed: ${mlError}`);
   if (status === 429) return new Error(`ML Service rate limit exceeded: ${mlError}`);
+  if (status === 503) return new Error(`ML Service unavailable (AI providers down): ${mlError}`);
   if (status === 504) return new Error(`ML Service request timed out: ${mlError}`);
   if (status === 502) return new Error(`ML Service received invalid AI response: ${mlError}`);
   if (status >= 500) return new Error(`ML Service error (${status}): ${mlError}`);

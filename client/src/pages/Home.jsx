@@ -25,19 +25,19 @@ export default function Home() {
       {/* Analysis Form */}
       <AnalysisForm />
 
-      {/* Features Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="panel p-5">
+      {/* Features */}
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="panel p-5 flex-1">
           <p className="text-cyan-700 text-xs uppercase tracking-wider font-bold">Root Cause</p>
           <h3 className="font-bold text-slate-800 text-lg mt-1">Signal From Noise</h3>
           <p className="text-sm text-slate-600 mt-2">AI isolates the likely break-point from stack traces and surrounding code context.</p>
         </div>
-        <div className="panel p-5">
+        <div className="panel p-5 flex-1">
           <p className="text-orange-700 text-xs uppercase tracking-wider font-bold">Remediation</p>
           <h3 className="font-bold text-slate-800 text-lg mt-1">Practical Fixes</h3>
           <p className="text-sm text-slate-600 mt-2">Get direct, actionable fix snippets and strategy notes you can test immediately.</p>
         </div>
-        <div className="panel p-5">
+        <div className="panel p-5 flex-1">
           <p className="text-emerald-700 text-xs uppercase tracking-wider font-bold">Decision</p>
           <h3 className="font-bold text-slate-800 text-lg mt-1">Confidence Meter</h3>
           <p className="text-sm text-slate-600 mt-2">Understand certainty at a glance before rolling fixes into production.</p>
